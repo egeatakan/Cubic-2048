@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
+// 1. İMPORT BURAYA EKLENDİ
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata: Metadata = {
   title: 'Cubic 2048',
@@ -13,7 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* 2. BİLEŞEN BURAYA EKLENDİ */}
+        <Analytics />
+      </body>
     </html>
   )
 }
