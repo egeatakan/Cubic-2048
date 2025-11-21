@@ -7,16 +7,13 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Sadece paketleri dönüştürmeye devam etsin, gerisine karışmasın
+  // DİKKAT: 'three' ve '@react-three/...' paketlerini buradan SİLDİM.
+  // Hatanın sebebi onları zorla dönüştürmeye çalışmamızdı.
+  // Sadece bu üçlü kalacak:
   transpilePackages: [
-    'three', 
-    '@react-three/fiber', 
-    '@react-three/drei', 
     'troika-three-text',
     'troika-three-utils',
-    'troika-worker-utils',
-    'webgl-sdf-generator',
-    'bidi-js'
+    'troika-worker-utils'
   ],
 };
 
