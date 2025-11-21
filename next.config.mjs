@@ -7,9 +7,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Worker paketlerini (utils) buradan ÇIKARDIK.
-  // Sadece ana giriş paketini dönüştür, gerisine dokunma.
-  transpilePackages: ['troika-three-text'],
+  // ÇÖZÜM BURADA:
+  // Hata veren tüm paketleri buraya ekledik ki Next.js bunları
+  // tarayıcı için düzgünce paketlesin.
+  transpilePackages: [
+    'troika-three-text',
+    'webgl-sdf-generator',
+    'bidi-js'
+  ],
 };
 
 export default nextConfig;
