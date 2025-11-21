@@ -1,5 +1,5 @@
-import { useRef, useEffect, Suspense } from 'react';
-import { Box, Text3D } from '@react-three/drei';
+import { useRef, useEffect } from 'react';
+import { Box, Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
 import { Tile } from '../lib/game';
@@ -37,17 +37,22 @@ export function AnimatedTile({ tile, gridSize, theme }: AnimatedTileProps) {
   });
 
   const color = theme.tileColors[tile.value] || '#333';
+  const textColor = tile.value > 4 ? '#f9f6f2' : '#776e65';
 
   return (
     <group ref={groupRef}>
       <Box castShadow>
         <meshStandardMaterial color={color} />
       </Box>
-      <Suspense fallback={null}>
-        <Text3D font={'/fonts/helvetiker_regular.typeface.json'} position={[-0.3, -0.2, 0.51]} size={0.5} height={0.1}>
-          {tile.value.toString()}
-        </Text3D>
-      </Suspense>
+      <Text
+        position={[0, 0, 0.51]}
+        fontSize={0.5}
+        color={textColor}
+        anchorX="center"
+        anchorY="middle"
+      >
+        {tile.value}
+      </Text>
     </group>
   );
 }

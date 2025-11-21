@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ['three', '@react-three/drei', 'troika-three-text', 'webgl-sdf-generator', 'bidi-js'],
-};
+const nextConfig = {};
 
 export default nextConfig;
