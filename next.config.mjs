@@ -7,8 +7,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // BU KISIM YENİ EKLENDİ:
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', 'troika-three-text'],
-}
+};
 
-module.exports = nextConfig
+// HATA BURADAYDI: "module.exports" yerine "export default" yazıyoruz:
+export default nextConfig;
