@@ -1,5 +1,16 @@
 'use client';
 
+// --- YAMA (POLYFILL) BAŞLANGICI ---
+// Bu kısım, tarayıcıda 'exports is not defined' hatasını çözmek için gereklidir.
+// Bazı three.js eklentileri (troika vb.) global exports objesini arar.
+if (typeof window !== 'undefined') {
+  // Eğer exports tanımlı değilse, boş bir obje olarak tanımla.
+  if (!(window as any).exports) {
+    (window as any).exports = {};
+  }
+}
+// --- YAMA BİTİŞİ ---
+
 import dynamic from 'next/dynamic';
 
 // Game bileşenini dinamik olarak yüklüyoruz.

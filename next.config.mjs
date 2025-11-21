@@ -7,14 +7,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // DİKKAT: 'three' ve '@react-three/...' paketlerini buradan SİLDİM.
-  // Hatanın sebebi onları zorla dönüştürmeye çalışmamızdı.
-  // Sadece bu üçlü kalacak:
-  transpilePackages: [
-    'troika-three-text',
-    'troika-three-utils',
-    'troika-worker-utils'
-  ],
+  // Worker paketlerini (utils) buradan ÇIKARDIK.
+  // Sadece ana giriş paketini dönüştür, gerisine dokunma.
+  transpilePackages: ['troika-three-text'],
 };
 
 export default nextConfig;
