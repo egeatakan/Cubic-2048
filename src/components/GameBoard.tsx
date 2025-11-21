@@ -25,9 +25,8 @@ export function GameBoard({ grid, gridSize, theme }: GameBoardProps) {
     }
   }
 
-  const tiles = grid.flat(2).filter(Boolean).map((tile) => (
-    <AnimatedTile key={`tile-${tile.id}`} tile={tile} gridSize={gridSize} theme={theme} />
-  ));
-
+const tiles = grid.flat(2).filter(Boolean).map((tile: any) => (
+  <AnimatedTile key={`tile-${tile.id}`} tile={tile} gridSize={gridSize} theme={theme} />
+));
   return <group>{cells}{tiles}</group>;
 }
