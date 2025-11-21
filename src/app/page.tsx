@@ -24,6 +24,12 @@ export default function Home() {
   const [customTheme, setCustomTheme] = useState<Theme>(themes.custom);
   const [isThemeEditorOpen, setIsThemeEditorOpen] = useState(false);
   const [nextTileValue, setNextTileValue] = useState(2);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isScoreOpen, setIsScoreOpen] = useState(true); // New state for Score section
+  const [isNextTileOpen, setIsNextTileOpen] = useState(true); // New state for NextTile section
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true); // New state for Instructions section
+  const [isGridSizeOpen, setIsGridSizeOpen] = useState(true); // New state for Grid Size section
+  const [isThemesOpen, setIsThemesOpen] = useState(true); // New state for Themes section
 
   useEffect(() => {
     const storedHighScore = localStorage.getItem('highScore');
@@ -111,27 +117,100 @@ export default function Home() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [grid, score, gameOver, gridSize, highScore, nextTileValue]);
+  }, [grid, score, gameOver, gridSize, highScore, nextTileValue, isPanelOpen]);
 
   return (
     <>
-      <Score score={score} highScore={highScore} theme={theme} />
-      <NextTile value={nextTileValue} theme={theme} />
+      <div style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 200 }}>
+        <button onClick={() => setIsPanelOpen(!isPanelOpen)} style={{ padding: '10px 15px', borderRadius: '5px', border: 'none', background: '#007bff', color: 'white', cursor: 'pointer' }}>
+          {isPanelOpen ? 'Close Info' : 'Open Info'}
+        </button>
+      </div>
+
+      {isPanelOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '60px',
+          right: '20px',
+          width: '300px',
+          padding: '20px',
+          background: 'rgba(0,0,0,0.8)',
+          color: theme.textColor,
+          borderRadius: '10px',
+          zIndex: 150,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto'
+        }}>
+          <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Score</h3>
+              <button onClick={() => setIsScoreOpen(!isScoreOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>
+                {isScoreOpen ? '−' : '+'}
+              </button>
+            </div>
+            {isScoreOpen && <Score score={score} highScore={highScore} theme={theme} />}
+          </div>
+          <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Next Tile</h3>
+              <button onClick={() => setIsNextTileOpen(!isNextTileOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>
+                {isNextTileOpen ? '−' : '+'}
+              </button>
+            </div>
+            {isNextTileOpen && <NextTile value={nextTileValue} theme={theme} />}
+          </div>
+          <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Instructions</h3>
+              <button onClick={() => setIsInstructionsOpen(!isInstructionsOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>
+                {isInstructionsOpen ? '−' : '+'}
+              </button>
+            </div>
+            {isInstructionsOpen && <Instructions />}
+          </div>
+          <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Grid Size</h3>
+              <button onClick={() => setIsGridSizeOpen(!isGridSizeOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>
+                {isGridSizeOpen ? '−' : '+'}
+              </button>
+            </div>
+            {isGridSizeOpen && (
+              <div>
+                <button onClick={() => setGridSize(3)} disabled={gridSize === 3} style={{marginRight: '10px'}}>3x3</button>
+                <button onClick={() => setGridSize(4)} disabled={gridSize === 4}>4x4</button>
+              </div>
+            )}
+          </div>
+          <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Themes</h3>
+              <button onClick={() => setIsThemesOpen(!isThemesOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>
+                {isThemesOpen ? '−' : '+'}
+              </button>
+            </div>
+            {isThemesOpen && (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                  {Object.keys(themes).map((themeName) => (
+                    <button key={themeName} onClick={() => changeTheme(themeName)} disabled={theme.name === themes[themeName].name} style={{ padding: '8px 12px', borderRadius: '5px', border: 'none', background: theme.name === themes[themeName].name ? '#28a745' : '#6c757d', color: 'white', cursor: 'pointer' }}>
+                      {themes[themeName].name}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setIsThemeEditorOpen(true)} style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '5px', border: 'none', background: '#ffc107', color: 'black', cursor: 'pointer' }}>Edit Theme</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {gameOver && <GameOver onRestart={startGame} />}
       {isThemeEditorOpen && <ThemeEditor theme={customTheme} onThemeChange={handleCustomThemeChange} onClose={() => setIsThemeEditorOpen(false)} />}
-      <Instructions />
-      <div style={{ position: 'absolute', bottom: '20px', left: '20px', zIndex: 100 }}>
-        <button onClick={() => setGridSize(3)} disabled={gridSize === 3} style={{marginRight: '10px'}}>3x3</button>
-        <button onClick={() => setGridSize(4)} disabled={gridSize === 4}>4x4</button>
-      </div>
-      <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 100 }}>
-        {Object.keys(themes).map((themeName) => (
-          <button key={themeName} onClick={() => changeTheme(themeName)} disabled={theme.name === themes[themeName].name} style={{marginLeft: '10px'}}>
-            {themes[themeName].name}
-          </button>
-        ))}
-        <button onClick={() => setIsThemeEditorOpen(true)} style={{marginLeft: '10px'}}>Edit Theme</button>
-      </div>
+      
       <Canvas shadows>
         <ambientLight intensity={Math.PI / 2} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} castShadow />

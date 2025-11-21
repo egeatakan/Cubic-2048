@@ -10,9 +10,6 @@ export function NextTile({ value, theme }: NextTileProps) {
   const color = theme.tileColors[value] || '#333';
   return (
     <div style={{
-      position: 'absolute',
-      top: '20px',
-      left: '20px',
       color: theme.textColor,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: '10px 20px',

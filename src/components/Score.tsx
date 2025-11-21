@@ -9,9 +9,6 @@ type ScoreProps = {
 export function Score({ score, highScore, theme }: ScoreProps) {
   return (
     <div style={{
-      position: 'absolute',
-      top: '20px',
-      left: '20px',
       color: theme.textColor,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: '10px 20px',

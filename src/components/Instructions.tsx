@@ -4,10 +4,7 @@ export function Instructions() {
   return (
     <div
       style={{
-        position: 'absolute',
-        top: '20px',
-        left: '20px',
-        color: 'white',
+        color: 'white', // Will be overridden by theme.textColor in the parent
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         padding: '10px',
         borderRadius: '5px',
