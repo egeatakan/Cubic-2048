@@ -7,20 +7,15 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Hata veren paketleri dönüştürmeye devam ediyoruz
-  transpilePackages: [
-    'troika-three-text',
-    'troika-three-utils',
-    'troika-worker-utils',
-    'webgl-sdf-generator',
-    'bidi-js'
-  ],
-  // SİHİRLİ AYAR BURASI:
-  // Bu ayar, "default export" ve "import" uyumsuzluklarını görmezden gelir.
+  // KRİTİK: Burayı boş bırakıyoruz. 
+  // Three.js'i buraya eklemek "redefine property" hatasına sebep oluyordu.
+  transpilePackages: [], 
+  
+  // ÇÖZÜM: Bu ayar, "does not contain a default export" 
+  // hatalarını susturup kodun çalışmasına izin verir.
   experimental: {
-    esmExternals: 'loose' 
-  },
-  // Webpack ayarlarını sildik (Alias yok, risk yok)
+    esmExternals: 'loose'
+  }
 };
 
 export default nextConfig;
