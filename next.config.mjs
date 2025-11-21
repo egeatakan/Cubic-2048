@@ -7,8 +7,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Tüm sorunlu 3D ve yazı paketlerini buraya ekliyoruz.
-  // Next.js bunları otomatik olarak tarayıcı uyumlu hale getirecek.
+  // Sadece paketleri dönüştürmeye devam etsin, gerisine karışmasın
   transpilePackages: [
     'three', 
     '@react-three/fiber', 
@@ -19,13 +18,6 @@ const nextConfig = {
     'webgl-sdf-generator',
     'bidi-js'
   ],
-  
-  // Webpack aliaslarını SİLDİK çünkü dosya yolu hatası veriyor.
-  // Bunun yerine Webpack'e "module" (ESM) dosyalarını öncelikli kullanmasını söylüyoruz.
-  webpack: (config) => {
-    config.resolve.mainFields = ['module', 'main'];
-    return config;
-  },
 };
 
 export default nextConfig;

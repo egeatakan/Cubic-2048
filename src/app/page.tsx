@@ -1,5 +1,8 @@
 'use client';
-
+if (typeof window !== 'undefined' && typeof (window as any).exports === 'undefined') {
+  (window as any).exports = {};
+}
+//
 import dynamic from 'next/dynamic';
 
 const Game = dynamic(() => import('../components/Game'), { 
