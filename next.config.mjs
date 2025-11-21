@@ -1,9 +1,4 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-// .mjs dosyalarında __dirname tanımlı değildir, biz oluşturuyoruz:
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -14,15 +9,20 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Sadece ana paketi dönüştürmeye devam et
   transpilePackages: ['troika-three-text'],
 
   webpack: (config) => {
-    // Alias ayarlarını TAM YOL (Absolute Path) ile yapıyoruz:
+    // Projenin ana klasörünü alıyoruz
+    const projectRoot = process.cwd();
+
+    // Alias ayarlarını projectRoot üzerinden yapıyoruz
     config.resolve.alias = {
       ...config.resolve.alias,
-      'bidi-js': path.join(__dirname, 'node_modules/bidi-js/dist/bidi.mjs'),
-      'webgl-sdf-generator': path.join(__dirname, 'node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.esm.js'),
+      'bidi-js': path.join(projectRoot, 'node_modules/bidi-js/dist/bidi.mjs'),
+      'webgl-sdf-generator': path.join(projectRoot, 'node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.esm.js'),
     };
+    
     return config;
   },
 };
