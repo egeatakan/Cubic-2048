@@ -25,11 +25,11 @@ export default function Home() {
   const [isThemeEditorOpen, setIsThemeEditorOpen] = useState(false);
   const [nextTileValue, setNextTileValue] = useState(2);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [isScoreOpen, setIsScoreOpen] = useState(true); // New state for Score section
-  const [isNextTileOpen, setIsNextTileOpen] = useState(true); // New state for NextTile section
-  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true); // New state for Instructions section
-  const [isGridSizeOpen, setIsGridSizeOpen] = useState(true); // New state for Grid Size section
-  const [isThemesOpen, setIsThemesOpen] = useState(true); // New state for Themes section
+  const [isScoreOpen, setIsScoreOpen] = useState(true); 
+  const [isNextTileOpen, setIsNextTileOpen] = useState(true); 
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true); 
+  const [isGridSizeOpen, setIsGridSizeOpen] = useState(true); 
+  const [isThemesOpen, setIsThemesOpen] = useState(true); 
 
   const startGame = useCallback(() => {
     let newGrid = createInitialGrid(gridSize);
@@ -101,6 +101,23 @@ export default function Home() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
+
+  // --- EKSİK FONKSİYONLAR EKLENDİ ---
+  
+  const changeTheme = (themeName: string) => {
+    if (themes[themeName]) {
+      setTheme(themes[themeName]);
+      localStorage.setItem('theme', themeName);
+    }
+  };
+
+  const handleCustomThemeChange = (newTheme: Theme) => {
+    setCustomTheme(newTheme);
+    setTheme(newTheme);
+    localStorage.setItem('customTheme', JSON.stringify(newTheme));
+  };
+
+  // ----------------------------------
 
   return (
     <>
