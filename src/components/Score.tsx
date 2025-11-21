@@ -1,21 +1,24 @@
+import { Theme } from '../lib/themes';
+
 type ScoreProps = {
   score: number;
   highScore: number;
+  theme: Theme;
 };
 
-export function Score({ score, highScore }: ScoreProps) {
+export function Score({ score, highScore, theme }: ScoreProps) {
   return (
     <div style={{
       position: 'absolute',
       top: '20px',
-      left: '20px',
-      color: 'white',
+      right: '20px',
+      color: theme.textColor,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: '10px 20px',
       borderRadius: '10px',
-      fontFamily: 'sans-serif'
+      fontFamily: 'sans-serif',
+      textAlign: 'right'
     }}>
-      <h1 style={{ marginTop: 0, marginBottom: '10px', fontSize: '2em' }}>Cubic 2048</h1>
       <div style={{ fontSize: '1.2em' }}>Score: {score}</div>
       <div style={{ fontSize: '1.2em' }}>High Score: {highScore}</div>
     </div>

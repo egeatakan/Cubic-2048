@@ -43,24 +43,54 @@
     - [x] Add a "Restart" button to start a new game.
 
 ## Phase 4: Animations and Visual Polish
-- [ ] **Tile Animations:**
-    - [ ] Animate the movement of tiles as they slide from one position to another.
-    - [ ] Animate the appearance of new tiles (e.g., scaling up).
-    - [ ] Animate the merging of tiles (e.g., a pulse or scale effect).
-- [ ] **UI/UX Improvements:**
-    - [ ] Improve the styling of the score and game over screens.
-    - [ ] Add a title and instructions to the game.
-    - [ ] Choose a visually appealing color scheme for the tiles.
-- [ ] **3D Scene Enhancements:**
-    - [ ] Add a background or environment to the scene.
-    - [ ] Experiment with different lighting and shadow configurations.
-    - [ ] Add post-processing effects for a more polished look.
+- [x] **Tile Animations:**
+    - [x] Animate the movement of tiles as they slide from one position to another.
+    - [x] Animate the appearance of new tiles (e.g., scaling up).
+    - [x] Animate the merging of tiles (e.g., a pulse or scale effect).
+- [x] **UI/UX Improvements:**
+    - [x] Improve the styling of the score and game over screens.
+    - [x] Add a title and instructions to the game.
+    - [x] Choose a visually appealing color scheme for the tiles.
+- [x] **3D Scene Enhancements:**
+    - [x] Add a background or environment to the scene.
+    - [x] Experiment with different lighting and shadow configurations.
+    - [x] Add post-processing effects for a more polished look. (Note: Could not add Bloom effect due to dependency restrictions)
 
 ## Phase 5: Sound and Final Touches
-- [ ] **Sound Effects:**
-    - [ ] Add sound effects for tile movement, merging, and game over.
-- [ ] **Code Refinement:**
-    - [ ] Review and refactor the code for clarity, performance, and maintainability.
-    - [ ] Add comments where necessary.
-- [ ] **Deployment:**
-    - [ ] Deploy the game to a hosting service (e.g., Vercel, Netlify).
+- [x] **Sound Effects:**
+    - [x] Add sound effects for tile movement, merging, and game over.
+- [x] **Code Refinement:**
+    - [x] Review and refactor the code for clarity, performance, and maintainability.
+    - [x] Add comments where necessary.
+- [x] **Deployment:**
+    - [x] Deploy the game to a hosting service (e.g., Vercel, Netlify).
+
+## Phase 6: Themes
+- [x] **Theme Data Structure:**
+    - [x] Define a data structure for themes (e.g., an object with colors for tiles, background, etc.).
+    - [x] Create a few default themes (e.g., "Dark", "Light", "Synthwave").
+- [x] **Theme Selection UI:**
+    - [x] Add a UI element (e.g., a dropdown or buttons) to allow the user to select a theme.
+- [x] **Apply Theme:**
+    - [x] Refactor the components to use the colors from the selected theme.
+
+## Phase 7: Custom Theme Editor
+- [x] **Custom Theme State:**
+    - [x] Add state to manage a custom theme.
+    - [x] Save and load the custom theme from `localStorage`.
+- [x] **Theme Editor UI:**
+    - [x] Create a new `ThemeEditor` component.
+    - [x] Add color pickers for background, text, and grid colors.
+    - [x] Add color pickers for each tile value.
+- [x] **Apply Custom Theme:**
+    - [x] Add a "Custom" theme option to the theme selector.
+    - [x] When selected, apply the user-defined custom theme.
+
+## Phase 8: Next Tile Indicator
+- [x] **Game Logic:**
+    - [x] Modify the game state to include the value of the next tile.
+    - [x] Update the `addRandomTile` function to use and update the next tile value.
+- [x] **UI Component:**
+    - [x] Create a `NextTile` component to display the upcoming tile.
+- [x] **Integration:**
+    - [x] Add the `NextTile` component to the main game page.

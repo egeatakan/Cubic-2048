@@ -1,30 +1,19 @@
-import { useRef, useEffect } from 'react';
-import { Box, Text } from '@react-three/drei';
+import { useRef, useEffect, Suspense } from 'react';
+import { Box, Text3D } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
 import { Tile } from '../lib/game';
+import { Theme } from '../lib/themes';
 
 type AnimatedTileProps = {
   tile: Tile;
   gridSize: number;
+  theme: Theme;
 };
 
-const colorMap: { [key: number]: string } = {
-  2: '#eee4da',
-  4: '#ede0c8',
-  8: '#f2b179',
-  16: '#f59563',
-  32: '#f67c5f',
-  64: '#f65e3b',
-  128: '#edcf72',
-  256: '#edcc61',
-  512: '#edc850',
-  1024: '#edc53f',
-  2048: '#edc22e',
-};
-
-export function AnimatedTile({ tile, gridSize }: AnimatedTileProps) {
+export function AnimatedTile({ tile, gridSize, theme }: AnimatedTileProps) {
   const groupRef = useRef<Group>(null!);
+  
   const targetPosition = new Vector3(
     tile.position[0] - gridSize / 2 + 0.5,
     tile.position[1] - gridSize / 2 + 0.5,
@@ -36,25 +25,29 @@ export function AnimatedTile({ tile, gridSize }: AnimatedTileProps) {
     groupRef.current.position.copy(targetPosition);
   }, [tile.id, targetPosition]);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     groupRef.current.position.lerp(targetPosition, 0.1);
-    groupRef.current.scale.lerp(new Vector3(1, 1, 1), 0.1);
+
+    if (tile.merged) {
+      const pulse = Math.sin(state.clock.elapsedTime * 10) * 0.1 + 1;
+      groupRef.current.scale.lerp(new Vector3(pulse, pulse, pulse), 0.2);
+    } else {
+      groupRef.current.scale.lerp(new Vector3(1, 1, 1), 0.1);
+    }
   });
+
+  const color = theme.tileColors[tile.value] || '#333';
 
   return (
     <group ref={groupRef}>
-      <Box>
-        <meshStandardMaterial color={colorMap[tile.value] || '#333'} />
+      <Box castShadow>
+        <meshStandardMaterial color={color} />
       </Box>
-      <Text
-        position={[0, 0, 0.51]}
-        fontSize={0.4}
-        color={tile.value > 4 ? 'white' : 'black'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {tile.value}
-      </Text>
+      <Suspense fallback={null}>
+        <Text3D font={'/fonts/helvetiker_regular.typeface.json'} position={[-0.3, -0.2, 0.51]} size={0.5} height={0.1}>
+          {tile.value.toString()}
+        </Text3D>
+      </Suspense>
     </group>
   );
 }

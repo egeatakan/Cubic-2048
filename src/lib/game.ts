@@ -1,7 +1,10 @@
+import { playMoveSound, playMergeSound, playGameOverSound } from './audio';
+
 export type Tile = {
   id: number;
   position: [number, number, number];
   value: number;
+  merged?: boolean;
 };
 
 export type Grid = (Tile | null)[][][];
@@ -28,7 +31,11 @@ export function createInitialGrid(gridSize: number): Grid {
   return grid;
 }
 
-export function addRandomTile(grid: Grid, gridSize: number): Grid {
+export function generateNextTileValue(): number {
+  return Math.random() < 0.9 ? 2 : 4;
+}
+
+export function addRandomTile(grid: Grid, gridSize: number, value: number): Grid {
   const emptyCells: [number, number, number][] = [];
   for (let x = 0; x < gridSize; x++) {
     for (let y = 0; y < gridSize; y++) {
@@ -46,7 +53,6 @@ export function addRandomTile(grid: Grid, gridSize: number): Grid {
 
   const randomIndex = Math.floor(Math.random() * emptyCells.length);
   const [x, y, z] = emptyCells[randomIndex];
-  const value = Math.random() < 0.9 ? 2 : 4;
   const newTile: Tile = {
     id: nextId++,
     position: [x, y, z],
@@ -61,95 +67,57 @@ export function addRandomTile(grid: Grid, gridSize: number): Grid {
 export type MoveResult = {
   grid: Grid;
   score: number;
+  nextTileValue: number;
 };
 
-export function move(grid: Grid, direction: Direction, gridSize: number): MoveResult {
-  switch (direction) {
-    case Direction.LEFT:
-      return moveX(grid, false, gridSize);
-    case Direction.RIGHT:
-      return moveX(grid, true, gridSize);
-    case Direction.DOWN:
-      return moveY(grid, false, gridSize);
-    case Direction.UP:
-      return moveY(grid, true, gridSize);
-    case Direction.BACK:
-      return moveZ(grid, false, gridSize);
-    case Direction.FRONT:
-      return moveZ(grid, true, gridSize);
-  }
+export function move(grid: Grid, direction: Direction, gridSize: number, nextTileValue: number): MoveResult {
+  const axis = Math.floor(direction / 2); // 0 for X, 1 for Y, 2 for Z
+  const isPositive = direction % 2 === 1;
+  return moveAlongAxis(grid, axis, isPositive, gridSize, nextTileValue);
 }
 
-function moveX(grid: Grid, isPositive: boolean, gridSize: number): MoveResult {
+function moveAlongAxis(grid: Grid, axis: number, isPositive: boolean, gridSize: number, nextTileValue: number): MoveResult {
   const newGrid = createInitialGrid(gridSize);
   let moved = false;
   let score = 0;
-  for (let y = 0; y < gridSize; y++) {
-    for (let z = 0; z < gridSize; z++) {
-      const line = grid.map((slice) => slice[y][z]);
-      const { newLine, score: lineScore } = slideAndMerge(line, isPositive, gridSize);
-      score += lineScore;
-      for (let x = 0; x < gridSize; x++) {
-        if (line[x] !== newLine[x]) moved = true;
-        if (newLine[x]) {
-          newGrid[x][y][z] = { ...newLine[x]!, position: [x, y, z] };
-        }
-      }
-    }
-  }
-  if (moved) {
-    return { grid: addRandomTile(newGrid, gridSize), score };
-  }
-  return { grid, score: 0 };
-}
 
-function moveY(grid: Grid, isPositive: boolean, gridSize: number): MoveResult {
-  const newGrid = createInitialGrid(gridSize);
-  let moved = false;
-  let score = 0;
-  for (let x = 0; x < gridSize; x++) {
-    for (let z = 0; z < gridSize; z++) {
+  const d0 = (axis + 1) % 3;
+  const d1 = (axis + 2) % 3;
+
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
       const line: (Tile | null)[] = [];
-      for (let y = 0; y < gridSize; y++) {
-        line.push(grid[x][y][z]);
-      }
-      const { newLine, score: lineScore } = slideAndMerge(line, isPositive, gridSize);
-      score += lineScore;
-      for (let y = 0; y < gridSize; y++) {
-        if (line[y] !== newLine[y]) moved = true;
-        if (newLine[y]) {
-          newGrid[x][y][z] = { ...newLine[y]!, position: [x, y, z] };
-        }
-      }
-    }
-  }
-  if (moved) {
-    return { grid: addRandomTile(newGrid, gridSize), score };
-  }
-  return { grid, score: 0 };
-}
+      const coords: [number, number, number][] = [];
 
-function moveZ(grid: Grid, isPositive: boolean, gridSize: number): MoveResult {
-  const newGrid = createInitialGrid(gridSize);
-  let moved = false;
-  let score = 0;
-  for (let x = 0; x < gridSize; x++) {
-    for (let y = 0; y < gridSize; y++) {
-      const line = grid[x][y];
+      for (let k = 0; k < gridSize; k++) {
+        const pos: [number, number, number] = [0, 0, 0];
+        pos[axis] = k;
+        pos[d0] = i;
+        pos[d1] = j;
+        coords.push(pos);
+        line.push(grid[pos[0]][pos[1]][pos[2]]);
+      }
+
       const { newLine, score: lineScore } = slideAndMerge(line, isPositive, gridSize);
       score += lineScore;
-      for (let z = 0; z < gridSize; z++) {
-        if (line[z] !== newLine[z]) moved = true;
-        if (newLine[z]) {
-          newGrid[x][y][z] = { ...newLine[z]!, position: [x, y, z] };
+
+      for (let k = 0; k < gridSize; k++) {
+        if (line[k] !== newLine[k]) moved = true;
+        if (newLine[k]) {
+          const pos = coords[k];
+          newGrid[pos[0]][pos[1]][pos[2]] = { ...newLine[k]!, position: pos };
         }
       }
     }
   }
+
   if (moved) {
-    return { grid: addRandomTile(newGrid, gridSize), score };
+    playMoveSound();
+    const newNextTileValue = generateNextTileValue();
+    const gridWithNewTile = addRandomTile(newGrid, gridSize, nextTileValue);
+    return { grid: gridWithNewTile, score, nextTileValue: newNextTileValue };
   }
-  return { grid, score: 0 };
+  return { grid, score: 0, nextTileValue };
 }
 
 function slideAndMerge(
@@ -169,7 +137,8 @@ function slideAndMerge(
     if (i + 1 < tiles.length && tiles[i].value === tiles[i + 1].value) {
       const newValue = tiles[i].value * 2;
       score += newValue;
-      merged.push({ ...tiles[i], value: newValue, id: nextId++ });
+      merged.push({ ...tiles[i], value: newValue, id: nextId++, merged: true });
+      playMergeSound();
       i += 2;
     } else {
       merged.push(tiles[i]);
