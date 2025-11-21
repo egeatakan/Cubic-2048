@@ -11,6 +11,18 @@ type AnimatedTileProps = {
   theme: Theme;
 };
 
+const TileText = ({ value, color, ...props }) => (
+  <Text
+    {...props}
+    fontSize={0.5}
+    color={color}
+    anchorX="center"
+    anchorY="middle"
+  >
+    {value}
+  </Text>
+);
+
 export function AnimatedTile({ tile, gridSize, theme }: AnimatedTileProps) {
   const groupRef = useRef<Group>(null!);
   
@@ -44,15 +56,12 @@ export function AnimatedTile({ tile, gridSize, theme }: AnimatedTileProps) {
       <Box castShadow>
         <meshStandardMaterial color={color} />
       </Box>
-      <Text
-        position={[0, 0, 0.51]}
-        fontSize={0.5}
-        color={textColor}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {tile.value}
-      </Text>
+      <TileText value={tile.value} color={textColor} position={[0, 0, 0.51]} />
+      <TileText value={tile.value} color={textColor} position={[0, 0, -0.51]} rotation={[0, Math.PI, 0]} />
+      <TileText value={tile.value} color={textColor} position={[0, 0.51, 0]} rotation={[-Math.PI / 2, 0, 0]} />
+      <TileText value={tile.value} color={textColor} position={[0, -0.51, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <TileText value={tile.value} color={textColor} position={[0.51, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+      <TileText value={tile.value} color={textColor} position={[-0.51, 0, 0]} rotation={[0, -Math.PI / 2, 0]} />
     </group>
   );
 }
