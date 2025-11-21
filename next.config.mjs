@@ -1,5 +1,9 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Hataları görmezden gelme ayarları
   reactStrictMode: false,
   typescript: {
     ignoreBuildErrors: true,
@@ -7,14 +11,26 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Sadece paketleri dönüştürmesi yeterli, yol tarifine gerek yok
+  
+  // Paketleri işlemeye al
   transpilePackages: [
     'three', 
     '@react-three/fiber', 
     '@react-three/drei', 
-    'troika-three-text',
-    'webgl-sdf-generator' // Bunu buraya eklemek yeterli
+    'troika-three-text'
   ],
+
+  // Webpack ayarları (Sihirli dokunuş burası)
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Tarayıcıya 'exports' hatası verdiren dosyalar yerine
+      // zorla .esm.js (Modern JS) dosyalarını kullanmasını söylüyoruz:
+      'troika-three-text': require.resolve('troika-three-text/dist/troika-three-text.esm.js'),
+      'webgl-sdf-generator': require.resolve('webgl-sdf-generator/dist/webgl-sdf-generator.esm.js'),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
