@@ -15,6 +15,10 @@ import { ThemeEditor } from '../components/ThemeEditor';
 import { NextTile } from '../components/NextTile';
 
 export default function Home() {
+  // --- YENİ EKLENEN STATE (Build hatasını önler) ---
+  const [isMounted, setIsMounted] = useState(false);
+  // ------------------------------------------------
+
   const [gridSize, setGridSize] = useState(4);
   const [grid, setGrid] = useState<Grid>([]);
   const [score, setScore] = useState(0);
@@ -44,6 +48,10 @@ export default function Home() {
   }, [gridSize, setNextTileValue, setGrid, setScore, setGameOver]);
 
   useEffect(() => {
+    // --- MOUNT KONTROLÜ ---
+    setIsMounted(true);
+    // ----------------------
+
     const storedHighScore = localStorage.getItem('highScore');
     if (storedHighScore) {
       setHighScore(parseInt(storedHighScore, 10));
@@ -102,7 +110,6 @@ export default function Home() {
     };
   }, [handleKeyDown]);
 
-  // --- EKSİK FONKSİYONLAR EKLENDİ ---
   
   const changeTheme = (themeName: string) => {
     if (themes[themeName]) {
@@ -117,7 +124,10 @@ export default function Home() {
     localStorage.setItem('customTheme', JSON.stringify(newTheme));
   };
 
-  // ----------------------------------
+  // --- ÖNEMLİ: Eğer sayfa henüz yüklenmediyse render etme ---
+  // Bu satır "TypeError: Cannot redefine property: default" hatasını çözer.
+  if (!isMounted) return null;
+  // ----------------------------------------------------------
 
   return (
     <>
