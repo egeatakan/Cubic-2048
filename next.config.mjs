@@ -10,5 +10,4 @@ const nextConfig = {
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', 'troika-three-text'],
 };
 
-// HATA BURADAYDI: "module.exports" yerine "export default" yazıyoruz:
 export default nextConfig;
