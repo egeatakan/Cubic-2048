@@ -1,9 +1,10 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Box, Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { Group, Vector3 } from 'three';
 import { Tile } from '../lib/game';
 import { Theme } from '../lib/themes';
+import { FC } from 'react';
 
 type AnimatedTileProps = {
   tile: Tile;
@@ -11,7 +12,14 @@ type AnimatedTileProps = {
   theme: Theme;
 };
 
-const TileText = ({ value, color, ...props }) => (
+
+interface TileTextProps {
+  value: string | number; // Yazı veya sayı olabilir
+  color: string;
+  [key: string]: any; // Diğer tüm props'ları kabul et
+}
+
+const TileText = ({ value, color, ...props }: TileTextProps) => (
   <Text
     {...props}
     fontSize={0.5}
@@ -26,11 +34,11 @@ const TileText = ({ value, color, ...props }) => (
 export function AnimatedTile({ tile, gridSize, theme }: AnimatedTileProps) {
   const groupRef = useRef<Group>(null!);
   
-  const targetPosition = new Vector3(
+  const targetPosition = useMemo(() => new Vector3(
     tile.position[0] - gridSize / 2 + 0.5,
     tile.position[1] - gridSize / 2 + 0.5,
     tile.position[2] - gridSize / 2 + 0.5
-  );
+  ), [tile.position, gridSize]);
 
   useEffect(() => {
     groupRef.current.scale.set(0, 0, 0);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { GameBoard } from '../components/GameBoard';
@@ -31,6 +31,18 @@ export default function Home() {
   const [isGridSizeOpen, setIsGridSizeOpen] = useState(true); // New state for Grid Size section
   const [isThemesOpen, setIsThemesOpen] = useState(true); // New state for Themes section
 
+  const startGame = useCallback(() => {
+    let newGrid = createInitialGrid(gridSize);
+    const firstTileValue = generateNextTileValue();
+    const secondTileValue = generateNextTileValue();
+    newGrid = addRandomTile(newGrid, gridSize, firstTileValue);
+    newGrid = addRandomTile(newGrid, gridSize, secondTileValue);
+    setNextTileValue(generateNextTileValue());
+    setGrid(newGrid);
+    setScore(0);
+    setGameOver(false);
+  }, [gridSize, setNextTileValue, setGrid, setScore, setGameOver]);
+
   useEffect(() => {
     const storedHighScore = localStorage.getItem('highScore');
     if (storedHighScore) {
@@ -45,42 +57,13 @@ export default function Home() {
       setCustomTheme(JSON.parse(storedCustomTheme));
     }
     startGame();
-  }, []);
-
-  const changeTheme = (themeName: string) => {
-    if (themeName === 'custom') {
-      setTheme(customTheme);
-    } else if (themes[themeName]) {
-      setTheme(themes[themeName]);
-    }
-    localStorage.setItem('theme', themeName);
-  };
-
-  const handleCustomThemeChange = (newTheme: Theme) => {
-    setCustomTheme(newTheme);
-    if (theme.name === 'Custom') {
-      setTheme(newTheme);
-    }
-    localStorage.setItem('customTheme', JSON.stringify(newTheme));
-  };
-
-  const startGame = () => {
-    let newGrid = createInitialGrid(gridSize);
-    const firstTileValue = generateNextTileValue();
-    const secondTileValue = generateNextTileValue();
-    newGrid = addRandomTile(newGrid, gridSize, firstTileValue);
-    newGrid = addRandomTile(newGrid, gridSize, secondTileValue);
-    setNextTileValue(generateNextTileValue());
-    setGrid(newGrid);
-    setScore(0);
-    setGameOver(false);
-  };
+  }, [startGame]);
 
   useEffect(() => {
     startGame();
-  }, [gridSize]);
+  }, [gridSize, startGame]);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (gameOver) return;
 
     const keyMap: { [key: string]: Direction } = {
@@ -110,14 +93,14 @@ export default function Home() {
         }
       }
     }
-  };
+  }, [gameOver, grid, gridSize, nextTileValue, score, highScore, setGrid, setNextTileValue, setScore, setGameOver, setHighScore]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [grid, score, gameOver, gridSize, highScore, nextTileValue, isPanelOpen]);
+  }, [handleKeyDown]);
 
   return (
     <>
