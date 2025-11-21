@@ -7,14 +7,18 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // ÇÖZÜM BURADA:
-  // Hata veren tüm paketleri buraya ekledik ki Next.js bunları
-  // tarayıcı için düzgünce paketlesin.
-  transpilePackages: [
-    'troika-three-text',
-    'webgl-sdf-generator',
-    'bidi-js'
-  ],
+  // Sadece ana paketi dönüştür, yan paketleri listeden ÇIKARDIK.
+  transpilePackages: ['troika-three-text'],
+
+  webpack: (config) => {
+    // Webpack'e paketlerin yerini elle gösteriyoruz (Alias)
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'bidi-js': 'bidi-js/dist/bidi.mjs',
+      'webgl-sdf-generator': 'webgl-sdf-generator/dist/webgl-sdf-generator.esm.js',
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
