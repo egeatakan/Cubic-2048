@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { Vector2, Vector3 } from 'three';
-import { useGesture } from '@use-gesture/react';
+import { Vector3 } from 'three';
 import { GameBoard } from './GameBoard';
 import { Score } from './Score';
 import { GameOver } from './GameOver';
@@ -15,25 +14,18 @@ import { createInitialGrid, Grid, addRandomTile, move, Direction, isGameOver, ge
 import { playGameOverSound } from '../lib/audio';
 import { themes, Theme } from '../lib/themes';
 
-// Helper component to report camera vectors
-function CameraReporter({ onCameraUpdate }: { onCameraUpdate: (fwd: Vector2, right: Vector2) => void }) {
+// Helper component to report the camera's 3D orientation vectors
+function CameraReporter({ onCameraUpdate }: { onCameraUpdate: (up: Vector3, right: Vector3) => void }) {
   const { camera } = useThree();
-  const forward = new Vector3();
+  const up = new Vector3();
   const right = new Vector3();
 
   useFrame(() => {
-    // Get camera's forward direction
-    camera.getWorldDirection(forward);
-    // Project onto XY plane and normalize for vertical movement
-    const forward2D = new Vector2(forward.x, forward.y).normalize();
-
-    // Get camera's right direction by crossing forward with world UP.
-    // This fixes the inverted horizontal control issue.
-    right.crossVectors(forward, new Vector3(0, 1, 0)).normalize();
-    // Project onto XY plane and normalize for horizontal movement
-    const right2D = new Vector2(right.x, right.y).normalize();
-
-    onCameraUpdate(forward2D, right2D);
+    camera.updateMatrixWorld(); // Ensure matrix is up-to-date
+    // Extract the camera's local right and up axes from its world matrix
+    right.setFromMatrixColumn(camera.matrixWorld, 0);
+    up.setFromMatrixColumn(camera.matrixWorld, 1);
+    onCameraUpdate(up, right);
   });
 
   return null;
@@ -57,45 +49,9 @@ export default function Game() {
   const [isThemesOpen, setIsThemesOpen] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
 
-  const cameraVectors = useRef({ fwd: new Vector2(), right: new Vector2() });
-
-  const getDirectionFromInput = useCallback((inputDirection: 'up' | 'down' | 'left' | 'right', fwd: Vector2, right: Vector2): Direction => {
-    let intendedVec: Vector2;
-    switch (inputDirection) {
-      case 'up':
-        intendedVec = fwd.clone();
-        break;
-      case 'down':
-        intendedVec = fwd.clone().negate();
-        break;
-      case 'right':
-        intendedVec = right.clone();
-        break;
-      case 'left':
-        intendedVec = right.clone().negate();
-        break;
-    }
-
-    // World axes on the XY plane for vertical panel movement
-    const worldAxes = [
-      { dir: Direction.UP,    vec: new Vector2(0, 1) },    // +Y
-      { dir: Direction.DOWN,  vec: new Vector2(0, -1) },   // -Y
-      { dir: Direction.RIGHT, vec: new Vector2(1, 0) },    // +X
-      { dir: Direction.LEFT,  vec: new Vector2(-1, 0) },   // -X
-    ];
-
-    let bestDir = Direction.UP;
-    let maxDot = -Infinity;
-
-    for (const axis of worldAxes) {
-      const dot = intendedVec.dot(axis.vec);
-      if (dot > maxDot) {
-        maxDot = dot;
-        bestDir = axis.dir;
-      }
-    }
-    return bestDir;
-  }, []);
+  const cameraVectors = useRef({ up: new Vector3(), right: new Vector3() });
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
 
   const startGame = useCallback(() => {
     let newGrid = createInitialGrid(gridSize);
@@ -143,67 +99,104 @@ export default function Game() {
     }
   }, [gameOver, grid, gridSize, nextTileValue, score, highScore]);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    const keyMap: { [key: string]: 'up' | 'down' | 'left' | 'right' | undefined } = {
-      w: 'up',
-      s: 'down',
-      a: 'left',
-      d: 'right',
-      ArrowUp: 'up',
-      ArrowDown: 'down',
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-    };
-    const inputDirection = keyMap[event.key];
-    if (inputDirection) {
-      event.preventDefault();
-      const { fwd, right } = cameraVectors.current;
-      const direction = getDirectionFromInput(inputDirection, fwd, right);
-      moveBlocks(direction);
-    }
-  }, [moveBlocks, getDirectionFromInput]);
-
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-  
-  const bind = useGesture({
-    onSwipe: ({ down, movement: [mx, my], distance, cancel }) => {
-      // Threshold check (increased to 50px) prevents accidental swipes.
-      if (down && distance > 50) {
-        // The `touch-action: none` style on the main div is the modern way to prevent
-        // the browser from scrolling when the user is swiping on the canvas.
+    const container = gameContainerRef.current;
+    if (!container) return;
 
-        // Screen Y is inverted; a downward swipe gives a positive `my`.
-        // We negate `my` so an upward swipe corresponds to a positive Y in our vector.
-        const swipeDirection = new Vector2(mx, -my).normalize();
-
-        const { fwd, right } = cameraVectors.current;
-        const dotForward = swipeDirection.dot(fwd);
-        const dotRight = swipeDirection.dot(right);
-        
-        let inputDirection: 'up' | 'down' | 'left' | 'right';
-
-        // Determine if the swipe was more vertical or horizontal from the camera's perspective.
-        if (Math.abs(dotForward) > Math.abs(dotRight)) {
-            // Vertical swipe.
-            // A positive dot product means the swipe is in the same direction as the camera's forward vector.
-            // The camera's forward vector points "into" the scene, which is a visual "down" move.
-            // Therefore, a positive dot means 'down', and a negative dot (against fwd) means 'up'.
-            inputDirection = dotForward > 0 ? 'down' : 'up';
-        } else {
-            // Horizontal swipe.
-            inputDirection = dotRight > 0 ? 'right' : 'left';
-        }
-        
-        // Map the user's intent to a world-axis-aligned direction and move the blocks.
-        const direction = getDirectionFromInput(inputDirection, fwd, right);
-        moveBlocks(direction);
-        cancel();
+    const getPointerCoords = (e: TouchEvent | MouseEvent): { x: number; y: number } => {
+      if (window.TouchEvent && e instanceof TouchEvent) {
+        return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
       }
-    },
-  });
+      return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
+    };
+    
+    const worldAxes = [
+      { dir: Direction.RIGHT, vec: new Vector3(1, 0, 0) },
+      { dir: Direction.LEFT,  vec: new Vector3(-1, 0, 0) },
+      { dir: Direction.UP,    vec: new Vector3(0, 1, 0) },
+      { dir: Direction.DOWN,  vec: new Vector3(0, -1, 0) },
+    ];
+
+    const getDirectionFromVector = (targetVector: Vector3): Direction => {
+      let bestDir = Direction.UP;
+      let maxDot = -Infinity;
+      for (const axis of worldAxes) {
+        const dot = targetVector.dot(axis.vec);
+        if (dot > maxDot) {
+          maxDot = dot;
+          bestDir = axis.dir;
+        }
+      }
+      return bestDir;
+    }
+
+    const handleSwipeStart = (e: TouchEvent | MouseEvent) => {
+      e.preventDefault();
+      touchStartPos.current = getPointerCoords(e);
+    };
+
+    const handleSwipeEnd = (e: TouchEvent | MouseEvent) => {
+      e.preventDefault();
+      if (!touchStartPos.current) return;
+
+      const endPos = getPointerCoords(e);
+      const startPos = touchStartPos.current;
+      touchStartPos.current = null;
+
+      const deltaX = endPos.x - startPos.x;
+      const deltaY = endPos.y - startPos.y;
+
+      if (Math.sqrt(deltaX ** 2 + deltaY ** 2) < 30) return; // Deadzone
+
+      const { up, right } = cameraVectors.current;
+
+      const targetVector = new Vector3();
+      targetVector.addScaledVector(right, deltaX);
+      targetVector.addScaledVector(up, -deltaY); // -deltaY inverts screen Y-axis
+      targetVector.normalize();
+      
+      const direction = getDirectionFromVector(targetVector);
+      moveBlocks(direction);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const keyMap: { [key: string]: 'up' | 'down' | 'left' | 'right' | undefined } = {
+        w: 'up', s: 'down', a: 'left', d: 'right',
+        ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+      };
+      const input = keyMap[event.key];
+      if (input) {
+        event.preventDefault();
+        
+        const { up, right } = cameraVectors.current;
+        let targetVector: Vector3;
+
+        switch(input) {
+          case 'up': targetVector = up.clone(); break;
+          case 'down': targetVector = up.clone().negate(); break;
+          case 'left': targetVector = right.clone().negate(); break;
+          case 'right': targetVector = right.clone(); break;
+        }
+
+        const direction = getDirectionFromVector(targetVector);
+        moveBlocks(direction);
+      }
+    };
+
+    container.addEventListener('touchstart', handleSwipeStart, { passive: false });
+    container.addEventListener('touchend', handleSwipeEnd, { passive: false });
+    container.addEventListener('mousedown', handleSwipeStart, { passive: false });
+    container.addEventListener('mouseup', handleSwipeEnd, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      container.removeEventListener('touchstart', handleSwipeStart);
+      container.removeEventListener('touchend', handleSwipeEnd);
+      container.removeEventListener('mousedown', handleSwipeStart);
+      container.removeEventListener('mouseup', handleSwipeEnd);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [moveBlocks]);
 
   const rotateLeft = () => setRotationAngle((prev) => (prev - 90 + 360) % 360);
   const rotateRight = () => setRotationAngle((prev) => (prev + 90) % 360);
@@ -222,7 +215,7 @@ export default function Game() {
   };
 
   return (
-    <div {...bind()} style={{ width: '100vw', height: '100vh', touchAction: 'none' }}>
+    <div ref={gameContainerRef} style={{ width: '100vw', height: '100vh', touchAction: 'none' }}>
       <div style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 200, display: 'flex', gap: '10px' }}>
         <button onClick={rotateLeft} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>⟲</button>
         <button onClick={rotateRight} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>⟳</button>
@@ -300,8 +293,8 @@ export default function Game() {
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
         <Background theme={theme} />
         <GameBoard grid={grid} gridSize={gridSize} theme={theme} rotationAngle={rotationAngle} />
-        <CameraReporter onCameraUpdate={(fwd, right) => {
-          cameraVectors.current = { fwd, right };
+        <CameraReporter onCameraUpdate={(up, right) => {
+          cameraVectors.current = { up, right };
         }} />
       </Canvas>
     </div>
