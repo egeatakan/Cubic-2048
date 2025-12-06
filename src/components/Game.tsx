@@ -101,29 +101,57 @@ export default function Game() {
       }
       return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
     };
-    
-    const worldAxes = [
-      { dir: Direction.RIGHT, vec: new Vector3(1, 0, 0) },
-      { dir: Direction.LEFT,  vec: new Vector3(-1, 0, 0) },
-      { dir: Direction.UP,    vec: new Vector3(0, 1, 0) },
-      { dir: Direction.DOWN,  vec: new Vector3(0, -1, 0) },
-    ];
 
-    const getDirectionFromProjection = (rawDirection: Vector3): Direction | null => {
-      // Flatten the direction vector onto the XY plane by zeroing out the Z component.
-      const projectedDirection = new Vector3(rawDirection.x, rawDirection.y, 0);
+    const getDynamicDirection = (rawDirection: Vector3, camera: Camera): Direction | null => {
+      // 1. Detect the "Active Face" by finding the dominant axis of the camera's view direction.
+      const viewDir = new Vector3();
+      camera.getWorldDirection(viewDir);
 
-      // If the projected vector is too small (e.g., looking top-down), ignore the input.
-      if (projectedDirection.lengthSq() < 0.1) {
+      const absX = Math.abs(viewDir.x);
+      const absY = Math.abs(viewDir.y);
+      const absZ = Math.abs(viewDir.z);
+
+      let projectedVector = rawDirection.clone();
+      let validAxes: { dir: Direction, vec: Vector3 }[];
+
+      // 2. Project Swipe onto the correct Active Plane.
+      if (absX > absY && absX > absZ) { // X is dominant -> Viewing a side face, active plane is YZ
+        projectedVector.x = 0;
+        validAxes = [
+          { dir: Direction.UP,    vec: new Vector3(0, 1, 0) },
+          { dir: Direction.DOWN,  vec: new Vector3(0, -1, 0) },
+          { dir: Direction.FRONT, vec: new Vector3(0, 0, 1) },
+          { dir: Direction.BACK,  vec: new Vector3(0, 0, -1) },
+        ];
+      } else if (absY > absX && absY > absZ) { // Y is dominant -> Viewing top/bottom face, active plane is XZ
+        projectedVector.y = 0;
+        validAxes = [
+          { dir: Direction.RIGHT, vec: new Vector3(1, 0, 0) },
+          { dir: Direction.LEFT,  vec: new Vector3(-1, 0, 0) },
+          { dir: Direction.FRONT, vec: new Vector3(0, 0, 1) },
+          { dir: Direction.BACK,  vec: new Vector3(0, 0, -1) },
+        ];
+      } else { // Z is dominant -> Viewing front/back face, active plane is XY
+        projectedVector.z = 0;
+        validAxes = [
+          { dir: Direction.RIGHT, vec: new Vector3(1, 0, 0) },
+          { dir: Direction.LEFT,  vec: new Vector3(-1, 0, 0) },
+          { dir: Direction.UP,    vec: new Vector3(0, 1, 0) },
+          { dir: Direction.DOWN,  vec: new Vector3(0, -1, 0) },
+        ];
+      }
+
+      // If the projected vector is too small (e.g., looking edge-on), ignore input.
+      if (projectedVector.lengthSq() < 0.1) {
         return null;
       }
-      projectedDirection.normalize();
+      projectedVector.normalize();
 
-      // Find the world axis that best matches the projected direction.
-      let bestDir = Direction.UP;
+      // 3. Snap to the best valid axis on the active plane.
+      let bestDir: Direction = validAxes[0].dir;
       let maxDot = -Infinity;
-      for (const axis of worldAxes) {
-        const dot = projectedDirection.dot(axis.vec);
+      for (const axis of validAxes) {
+        const dot = projectedVector.dot(axis.vec);
         if (dot > maxDot) {
           maxDot = dot;
           bestDir = axis.dir;
@@ -155,12 +183,11 @@ export default function Game() {
       const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
       const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
 
-      // Construct the raw visual vector based on camera orientation and swipe
       const rawDirection = new Vector3();
       rawDirection.addScaledVector(right, deltaX);
-      rawDirection.addScaledVector(up, -deltaY); // -deltaY inverts screen Y-axis
+      rawDirection.addScaledVector(up, -deltaY);
       
-      const direction = getDirectionFromProjection(rawDirection);
+      const direction = getDynamicDirection(rawDirection, camera);
       if (direction !== null) {
         moveBlocks(direction);
       }
@@ -188,7 +215,7 @@ export default function Game() {
           case 'right': rawDirection = right; break;
         }
 
-        const direction = getDirectionFromProjection(rawDirection);
+        const direction = getDynamicDirection(rawDirection, camera);
         if (direction !== null) {
           moveBlocks(direction);
         }
