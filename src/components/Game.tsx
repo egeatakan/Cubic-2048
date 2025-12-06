@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Vector3, Camera } from 'three';
+import { OrbitControls } from '@react-three/drei';
 import { GameBoard } from './GameBoard';
 import { Score } from './Score';
 import { GameOver } from './GameOver';
@@ -14,11 +15,51 @@ import { createInitialGrid, Grid, addRandomTile, move, Direction, isGameOver, ge
 import { playGameOverSound } from '../lib/audio';
 import { themes, Theme } from '../lib/themes';
 
+// This component manages camera controls and animations
+function CameraManager({ animationTarget, onAnimationFinish }: { animationTarget: { position: Vector3, target: Vector3 } | null, onAnimationFinish: () => void }) {
+  const { camera, gl } = useThree();
+  const controlsRef = useRef<any>();
+
+  useFrame(() => {
+    if (animationTarget) {
+      // Smoothly interpolate camera position
+      camera.position.lerp(animationTarget.position, 0.05);
+      // Smoothly interpolate controls target (the point camera looks at)
+      controlsRef.current?.target.lerp(animationTarget.target, 0.05);
+
+      const isPositionClose = camera.position.distanceTo(animationTarget.position) < 0.1;
+      const isTargetClose = controlsRef.current?.target.distanceTo(animationTarget.target) < 0.1;
+
+      // When animation is complete, snap to final state and stop animating
+      if (isPositionClose && isTargetClose) {
+        camera.position.copy(animationTarget.position);
+        if(controlsRef.current) {
+          controlsRef.current.target.copy(animationTarget.target);
+        }
+        onAnimationFinish();
+      }
+    }
+  });
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      args={[camera, gl.domElement]}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI}
+      enableDamping={true}
+      dampingFactor={0.1}
+    />
+  );
+}
+
 // Helper component to get a reference to the main camera object
 function CameraRef({ cameraRef }: { cameraRef: React.MutableRefObject<Camera | null> }) {
   const { camera } = useThree();
   useEffect(() => {
     cameraRef.current = camera;
+    // Set initial position
+    camera.position.set(0, 4, 8);
   }, [camera, cameraRef]);
   return null;
 }
@@ -39,7 +80,7 @@ export default function Game() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const [isGridSizeOpen, setIsGridSizeOpen] = useState(true);
   const [isThemesOpen, setIsThemesOpen] = useState(true);
-  const [rotationAngle, setRotationAngle] = useState(0);
+  const [cameraAnimationTarget, setCameraAnimationTarget] = useState<{ position: Vector3, target: Vector3 } | null>(null);
 
   const cameraRef = useRef<Camera | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -237,8 +278,9 @@ export default function Game() {
     };
   }, [moveBlocks]);
 
-  const rotateLeft = () => setRotationAngle((prev) => (prev - 90 + 360) % 360);
-  const rotateRight = () => setRotationAngle((prev) => (prev + 90) % 360);
+  const onSnapViewClick = (pos: [number, number, number]) => {
+    setCameraAnimationTarget({ position: new Vector3(...pos), target: new Vector3(0, 0, 0) });
+  };
   
   const changeTheme = (themeName: string) => {
     if (themes[themeName]) {
@@ -256,8 +298,9 @@ export default function Game() {
   return (
     <div ref={gameContainerRef} style={{ width: '100vw', height: '100vh', touchAction: 'none' }}>
       <div style={{ position: 'absolute', top: '10px', right: '20px', zIndex: 200, display: 'flex', gap: '10px' }}>
-        <button onClick={rotateLeft} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>⟲</button>
-        <button onClick={rotateRight} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>⟳</button>
+        <button onClick={() => onSnapViewClick([0, 0, 10])} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>Front</button>
+        <button onClick={() => onSnapViewClick([0, 10, 0.1])} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>Top</button>
+        <button onClick={() => onSnapViewClick([0, -10, 0.1])} style={{ padding: '10px', borderRadius: '5px', border: 'none', background: '#6c757d', color: 'white', cursor: 'pointer' }}>Bottom</button>
         <button onClick={() => setIsPanelOpen(!isPanelOpen)} style={{ padding: '10px 15px', borderRadius: '5px', border: 'none', background: '#007bff', color: 'white', cursor: 'pointer' }}>
           {isPanelOpen ? 'Close' : 'Menu'}
         </button>
@@ -327,8 +370,12 @@ export default function Game() {
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} castShadow />
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
         <Background theme={theme} />
-        <GameBoard grid={grid} gridSize={gridSize} theme={theme} rotationAngle={rotationAngle} />
+        <GameBoard grid={grid} gridSize={gridSize} theme={theme} />
         <CameraRef cameraRef={cameraRef} />
+        <CameraManager
+          animationTarget={cameraAnimationTarget}
+          onAnimationFinish={() => setCameraAnimationTarget(null)}
+        />
       </Canvas>
     </div>
   );
