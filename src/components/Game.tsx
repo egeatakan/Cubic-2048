@@ -24,13 +24,14 @@ function CameraReporter({ onCameraUpdate }: { onCameraUpdate: (fwd: Vector2, rig
   useFrame(() => {
     // Get camera's forward direction
     camera.getWorldDirection(forward);
-    // Project onto XY plane and normalize
-    const forward2D = new Vector2(forward.x, forward.y).normalize();
+    // Project onto XZ plane and normalize
+    const forward2D = new Vector2(forward.x, forward.z).normalize();
 
-    // Get camera's right direction
-    right.crossVectors(camera.up, forward).normalize();
-    // Project onto XY plane and normalize
-    const right2D = new Vector2(right.x, right.y).normalize();
+    // Get camera's right direction by crossing world UP with camera forward
+    // This ensures 'right' is always horizontal.
+    right.crossVectors(new Vector3(0, 1, 0), forward).normalize();
+    // Project onto XZ plane and normalize
+    const right2D = new Vector2(right.x, right.z).normalize();
 
     onCameraUpdate(forward2D, right2D);
   });
@@ -57,6 +58,44 @@ export default function Game() {
   const [rotationAngle, setRotationAngle] = useState(0);
 
   const cameraVectors = useRef({ fwd: new Vector2(), right: new Vector2() });
+
+  const getDirectionFromInput = useCallback((inputDirection: 'up' | 'down' | 'left' | 'right', fwd: Vector2, right: Vector2): Direction => {
+    let intendedVec: Vector2;
+    switch (inputDirection) {
+      case 'up':
+        intendedVec = fwd.clone();
+        break;
+      case 'down':
+        intendedVec = fwd.clone().negate();
+        break;
+      case 'right':
+        intendedVec = right.clone();
+        break;
+      case 'left':
+        intendedVec = right.clone().negate();
+        break;
+    }
+
+    // World axes on the XZ plane for a 2D-like experience
+    const worldAxes = [
+      { dir: Direction.FRONT, vec: new Vector2(0, 1) },   // +Z
+      { dir: Direction.BACK, vec: new Vector2(0, -1) },  // -Z
+      { dir: Direction.RIGHT, vec: new Vector2(1, 0) },   // +X
+      { dir: Direction.LEFT, vec: new Vector2(-1, 0) },  // -X
+    ];
+
+    let bestDir = Direction.FRONT;
+    let maxDot = -Infinity;
+
+    for (const axis of worldAxes) {
+      const dot = intendedVec.dot(axis.vec);
+      if (dot > maxDot) {
+        maxDot = dot;
+        bestDir = axis.dir;
+      }
+    }
+    return bestDir;
+  }, []);
 
   const startGame = useCallback(() => {
     let newGrid = createInitialGrid(gridSize);
@@ -105,21 +144,24 @@ export default function Game() {
   }, [gameOver, grid, gridSize, nextTileValue, score, highScore]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    const keyMap: { [key: string]: Direction | undefined } = {
-      w: Direction.UP,
-      s: Direction.DOWN,
-      a: Direction.LEFT,
-      d: Direction.RIGHT,
-      ArrowUp: Direction.UP,
-      ArrowDown: Direction.DOWN,
-      ArrowLeft: Direction.LEFT,
-      ArrowRight: Direction.RIGHT,
+    const keyMap: { [key: string]: 'up' | 'down' | 'left' | 'right' | undefined } = {
+      w: 'up',
+      s: 'down',
+      a: 'left',
+      d: 'right',
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
     };
-    const direction = keyMap[event.key];
-    if (direction !== undefined) {
+    const inputDirection = keyMap[event.key];
+    if (inputDirection) {
+      event.preventDefault();
+      const { fwd, right } = cameraVectors.current;
+      const direction = getDirectionFromInput(inputDirection, fwd, right);
       moveBlocks(direction);
     }
-  }, [moveBlocks]);
+  }, [moveBlocks, getDirectionFromInput]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -129,45 +171,26 @@ export default function Game() {
   const bind = useGesture({
     onSwipe: ({ down, movement: [mx, my], distance, cancel }) => {
       if (down && distance > 30) {
-        const swipe = new Vector2(mx, my);
-        // Screen Y is inverted, so a downward swipe has a positive Y.
+        // Screen Y is inverted, a downward swipe has a positive Y.
         // We want a visually upward swipe to correspond to the camera's forward.
-        const swipeDirection = new Vector2(swipe.x, -swipe.y).normalize();
+        const swipeDirection = new Vector2(mx, -my).normalize();
 
         const { fwd, right } = cameraVectors.current;
 
         const dotForward = swipeDirection.dot(fwd);
         const dotRight = swipeDirection.dot(right);
-
-        let intendedVec: Vector2;
+        
+        let inputDirection: 'up' | 'down' | 'left' | 'right';
 
         // Determine if swipe is more vertical or horizontal from camera's perspective
         if (Math.abs(dotForward) > Math.abs(dotRight)) {
-            intendedVec = fwd.clone().multiplyScalar(Math.sign(dotForward));
+            inputDirection = dotForward > 0 ? 'up' : 'down';
         } else {
-            intendedVec = right.clone().multiplyScalar(Math.sign(dotRight));
+            inputDirection = dotRight > 0 ? 'right' : 'left';
         }
         
-        // Map the intended vector to the closest world axis
-        const worldAxes = [
-            { dir: Direction.UP, vec: new Vector2(0, 1) },
-            { dir: Direction.DOWN, vec: new Vector2(0, -1) },
-            { dir: Direction.RIGHT, vec: new Vector2(1, 0) },
-            { dir: Direction.LEFT, vec: new Vector2(-1, 0) },
-        ];
-
-        let bestDir = Direction.UP;
-        let maxDot = -Infinity;
-
-        for (const axis of worldAxes) {
-            const dot = intendedVec.dot(axis.vec);
-            if (dot > maxDot) {
-                maxDot = dot;
-                bestDir = axis.dir;
-            }
-        }
-        
-        moveBlocks(bestDir);
+        const direction = getDirectionFromInput(inputDirection, fwd, right);
+        moveBlocks(direction);
         cancel();
       }
     },
