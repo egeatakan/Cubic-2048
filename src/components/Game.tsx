@@ -24,14 +24,14 @@ function CameraReporter({ onCameraUpdate }: { onCameraUpdate: (fwd: Vector2, rig
   useFrame(() => {
     // Get camera's forward direction
     camera.getWorldDirection(forward);
-    // Project onto XZ plane and normalize
-    const forward2D = new Vector2(forward.x, forward.z).normalize();
+    // Project onto XY plane and normalize for vertical movement
+    const forward2D = new Vector2(forward.x, forward.y).normalize();
 
-    // Get camera's right direction by crossing world UP with camera forward
-    // This ensures 'right' is always horizontal.
-    right.crossVectors(new Vector3(0, 1, 0), forward).normalize();
-    // Project onto XZ plane and normalize
-    const right2D = new Vector2(right.x, right.z).normalize();
+    // Get camera's right direction by crossing forward with world UP.
+    // This fixes the inverted horizontal control issue.
+    right.crossVectors(forward, new Vector3(0, 1, 0)).normalize();
+    // Project onto XY plane and normalize for horizontal movement
+    const right2D = new Vector2(right.x, right.y).normalize();
 
     onCameraUpdate(forward2D, right2D);
   });
@@ -76,15 +76,15 @@ export default function Game() {
         break;
     }
 
-    // World axes on the XZ plane for a 2D-like experience
+    // World axes on the XY plane for vertical panel movement
     const worldAxes = [
-      { dir: Direction.FRONT, vec: new Vector2(0, 1) },   // +Z
-      { dir: Direction.BACK, vec: new Vector2(0, -1) },  // -Z
-      { dir: Direction.RIGHT, vec: new Vector2(1, 0) },   // +X
-      { dir: Direction.LEFT, vec: new Vector2(-1, 0) },  // -X
+      { dir: Direction.UP,    vec: new Vector2(0, 1) },    // +Y
+      { dir: Direction.DOWN,  vec: new Vector2(0, -1) },   // -Y
+      { dir: Direction.RIGHT, vec: new Vector2(1, 0) },    // +X
+      { dir: Direction.LEFT,  vec: new Vector2(-1, 0) },   // -X
     ];
 
-    let bestDir = Direction.FRONT;
+    let bestDir = Direction.UP;
     let maxDot = -Infinity;
 
     for (const axis of worldAxes) {
