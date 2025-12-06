@@ -109,11 +109,21 @@ export default function Game() {
       { dir: Direction.DOWN,  vec: new Vector3(0, -1, 0) },
     ];
 
-    const getDirectionFromVector = (targetVector: Vector3): Direction => {
+    const getDirectionFromProjection = (rawDirection: Vector3): Direction | null => {
+      // Flatten the direction vector onto the XY plane by zeroing out the Z component.
+      const projectedDirection = new Vector3(rawDirection.x, rawDirection.y, 0);
+
+      // If the projected vector is too small (e.g., looking top-down), ignore the input.
+      if (projectedDirection.lengthSq() < 0.1) {
+        return null;
+      }
+      projectedDirection.normalize();
+
+      // Find the world axis that best matches the projected direction.
       let bestDir = Direction.UP;
       let maxDot = -Infinity;
       for (const axis of worldAxes) {
-        const dot = targetVector.dot(axis.vec);
+        const dot = projectedDirection.dot(axis.vec);
         if (dot > maxDot) {
           maxDot = dot;
           bestDir = axis.dir;
@@ -141,19 +151,19 @@ export default function Game() {
 
       if (Math.sqrt(deltaX ** 2 + deltaY ** 2) < 30) return; // Deadzone
 
-      // Get LIVE camera vectors
       camera.updateMatrixWorld();
       const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
       const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
 
-      // Create target vector from swipe deltas and live camera vectors
-      const targetVector = new Vector3();
-      targetVector.addScaledVector(right, deltaX);
-      targetVector.addScaledVector(up, -deltaY); // -deltaY inverts screen Y-axis
-      targetVector.normalize();
+      // Construct the raw visual vector based on camera orientation and swipe
+      const rawDirection = new Vector3();
+      rawDirection.addScaledVector(right, deltaX);
+      rawDirection.addScaledVector(up, -deltaY); // -deltaY inverts screen Y-axis
       
-      const direction = getDirectionFromVector(targetVector);
-      moveBlocks(direction);
+      const direction = getDirectionFromProjection(rawDirection);
+      if (direction !== null) {
+        moveBlocks(direction);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -166,21 +176,22 @@ export default function Game() {
       if (input && camera) {
         event.preventDefault();
         
-        // Get LIVE camera vectors
         camera.updateMatrixWorld();
         const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
         const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
-        let targetVector: Vector3;
+        let rawDirection: Vector3;
 
         switch(input) {
-          case 'up': targetVector = up; break;
-          case 'down': targetVector = up.clone().negate(); break;
-          case 'left': targetVector = right.clone().negate(); break;
-          case 'right': targetVector = right; break;
+          case 'up': rawDirection = up; break;
+          case 'down': rawDirection = up.clone().negate(); break;
+          case 'left': rawDirection = right.clone().negate(); break;
+          case 'right': rawDirection = right; break;
         }
 
-        const direction = getDirectionFromVector(targetVector);
-        moveBlocks(direction);
+        const direction = getDirectionFromProjection(rawDirection);
+        if (direction !== null) {
+          moveBlocks(direction);
+        }
       }
     };
 
