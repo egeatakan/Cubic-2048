@@ -170,25 +170,34 @@ export default function Game() {
   
   const bind = useGesture({
     onSwipe: ({ down, movement: [mx, my], distance, cancel }) => {
-      if (down && distance > 30) {
-        // Screen Y is inverted, a downward swipe has a positive Y.
-        // We want a visually upward swipe to correspond to the camera's forward.
+      // Threshold check (increased to 50px) prevents accidental swipes.
+      if (down && distance > 50) {
+        // The `touch-action: none` style on the main div is the modern way to prevent
+        // the browser from scrolling when the user is swiping on the canvas.
+
+        // Screen Y is inverted; a downward swipe gives a positive `my`.
+        // We negate `my` so an upward swipe corresponds to a positive Y in our vector.
         const swipeDirection = new Vector2(mx, -my).normalize();
 
         const { fwd, right } = cameraVectors.current;
-
         const dotForward = swipeDirection.dot(fwd);
         const dotRight = swipeDirection.dot(right);
         
         let inputDirection: 'up' | 'down' | 'left' | 'right';
 
-        // Determine if swipe is more vertical or horizontal from camera's perspective
+        // Determine if the swipe was more vertical or horizontal from the camera's perspective.
         if (Math.abs(dotForward) > Math.abs(dotRight)) {
-            inputDirection = dotForward > 0 ? 'up' : 'down';
+            // Vertical swipe.
+            // A positive dot product means the swipe is in the same direction as the camera's forward vector.
+            // The camera's forward vector points "into" the scene, which is a visual "down" move.
+            // Therefore, a positive dot means 'down', and a negative dot (against fwd) means 'up'.
+            inputDirection = dotForward > 0 ? 'down' : 'up';
         } else {
+            // Horizontal swipe.
             inputDirection = dotRight > 0 ? 'right' : 'left';
         }
         
+        // Map the user's intent to a world-axis-aligned direction and move the blocks.
         const direction = getDirectionFromInput(inputDirection, fwd, right);
         moveBlocks(direction);
         cancel();
