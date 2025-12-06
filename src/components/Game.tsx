@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { Vector3 } from 'three';
+import { Vector3, Camera } from 'three';
 import { GameBoard } from './GameBoard';
 import { Score } from './Score';
 import { GameOver } from './GameOver';
@@ -14,20 +14,12 @@ import { createInitialGrid, Grid, addRandomTile, move, Direction, isGameOver, ge
 import { playGameOverSound } from '../lib/audio';
 import { themes, Theme } from '../lib/themes';
 
-// Helper component to report the camera's 3D orientation vectors
-function CameraReporter({ onCameraUpdate }: { onCameraUpdate: (up: Vector3, right: Vector3) => void }) {
+// Helper component to get a reference to the main camera object
+function CameraRef({ cameraRef }: { cameraRef: React.MutableRefObject<Camera | null> }) {
   const { camera } = useThree();
-  const up = new Vector3();
-  const right = new Vector3();
-
-  useFrame(() => {
-    camera.updateMatrixWorld(); // Ensure matrix is up-to-date
-    // Extract the camera's local right and up axes from its world matrix
-    right.setFromMatrixColumn(camera.matrixWorld, 0);
-    up.setFromMatrixColumn(camera.matrixWorld, 1);
-    onCameraUpdate(up, right);
-  });
-
+  useEffect(() => {
+    cameraRef.current = camera;
+  }, [camera, cameraRef]);
   return null;
 }
 
@@ -49,7 +41,7 @@ export default function Game() {
   const [isThemesOpen, setIsThemesOpen] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
 
-  const cameraVectors = useRef({ up: new Vector3(), right: new Vector3() });
+  const cameraRef = useRef<Camera | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
 
@@ -137,7 +129,8 @@ export default function Game() {
 
     const handleSwipeEnd = (e: TouchEvent | MouseEvent) => {
       e.preventDefault();
-      if (!touchStartPos.current) return;
+      const camera = cameraRef.current;
+      if (!touchStartPos.current || !camera) return;
 
       const endPos = getPointerCoords(e);
       const startPos = touchStartPos.current;
@@ -148,8 +141,12 @@ export default function Game() {
 
       if (Math.sqrt(deltaX ** 2 + deltaY ** 2) < 30) return; // Deadzone
 
-      const { up, right } = cameraVectors.current;
+      // Get LIVE camera vectors
+      camera.updateMatrixWorld();
+      const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+      const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
 
+      // Create target vector from swipe deltas and live camera vectors
       const targetVector = new Vector3();
       targetVector.addScaledVector(right, deltaX);
       targetVector.addScaledVector(up, -deltaY); // -deltaY inverts screen Y-axis
@@ -165,17 +162,21 @@ export default function Game() {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
       };
       const input = keyMap[event.key];
-      if (input) {
+      const camera = cameraRef.current;
+      if (input && camera) {
         event.preventDefault();
         
-        const { up, right } = cameraVectors.current;
+        // Get LIVE camera vectors
+        camera.updateMatrixWorld();
+        const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
         let targetVector: Vector3;
 
         switch(input) {
-          case 'up': targetVector = up.clone(); break;
+          case 'up': targetVector = up; break;
           case 'down': targetVector = up.clone().negate(); break;
           case 'left': targetVector = right.clone().negate(); break;
-          case 'right': targetVector = right.clone(); break;
+          case 'right': targetVector = right; break;
         }
 
         const direction = getDirectionFromVector(targetVector);
@@ -254,11 +255,7 @@ export default function Game() {
           <div style={{ border: '1px solid gray', padding: '10px', borderRadius: '5px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3>Grid Size</h3>
-              <button onClick={() => setIsGridSizeOpen(!isGridSizeOpen)} style={{ background: 'none', border: 'none', color: theme.textColor, fontSize: '1.2em', cursor: 'pointer' }}>{isGridSizeOpen ? '−' : '+'}</button>
-            </div>
-            {isGridSizeOpen && (
-              <div>
-                <button onClick={() => setGridSize(3)} disabled={gridSize === 3} style={{marginRight: '10px'}}>3x3</button>
+              <button onClick={() => setGridSize(3)} disabled={gridSize === 3} style={{marginRight: '10px'}}>3x3</button>
                 <button onClick={() => setGridSize(4)} disabled={gridSize === 4}>4x4</button>
               </div>
             )}
@@ -293,9 +290,7 @@ export default function Game() {
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
         <Background theme={theme} />
         <GameBoard grid={grid} gridSize={gridSize} theme={theme} rotationAngle={rotationAngle} />
-        <CameraReporter onCameraUpdate={(up, right) => {
-          cameraVectors.current = { up, right };
-        }} />
+        <CameraRef cameraRef={cameraRef} />
       </Canvas>
     </div>
   );
